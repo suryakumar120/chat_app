@@ -39,7 +39,7 @@
             </div>
             <div class="chat_list">
               <div class="chat_people">
-                <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
+                <div class="chat_img"> <img src="../assets/logo.png" alt="sunil"> </div>
                 <div class="chat_ib">
                   <h5>Natasha Romanoff <span class="chat_date">Dec 25</span></h5>
                   <p>Test, which is a new approach to have all solutions 
@@ -51,6 +51,7 @@
               <div class="chat_people">
                 <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
                 <div class="chat_ib">
+                  <img src="https://firebasestorage.googleapis.com/v0/b/chat-app-1f95d.appspot.com/o/images%2Fnature.jpg?alt=media&token=227fce03-8468-4d64-8fd5-73dd5de0270a" class="img-fluid" alt="Responsive image" >
                   <h5>Steve Rogers <span class="chat_date">Dec 25</span></h5>
                   <p>Test, which is a new approach to have all solutions 
                     astrology under one roof.</p>
@@ -73,7 +74,7 @@
           <div class="type_msg">
             <div class="input_msg_write">
               <input @keyup.enter ="calling"  v-model = "message" type="text" class="write_msg" placeholder="Type a message" />
-              <button class="msg_send_btn" type="button"><i class="fa fa-paper-plane-o" aria-hidden="true"></i></button>
+              <input type="file" accept="image/*" @change="onChange">
             </div>
           </div>
         </div>
@@ -86,7 +87,7 @@
 
 <script>
 // @ is an alias to /src
-import firestore from '../firebase'
+import firestore from '../firebase';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { 
     collection, 
@@ -103,8 +104,17 @@ import {
     QuerySnapshot,
     orderBy
 } from 'firebase/firestore';
+import {
+  getStorage,
+  ref,
+  getDownloadURL
+  } from 'firebase/storage';
+import {  uploadBytesResumable } from "firebase/storage";
 import {serverTimestamp} from 'firebase/firestore';
 const docref= collection(firestore,'chat');
+const storage = getStorage();
+
+
 export default {
   name: 'Chat',
   data(){
@@ -113,6 +123,8 @@ export default {
           createdat:null,
           messages:[],
           authUser:{},
+          image:null,
+          imageUrl:null,
       }
   },
   components: {
@@ -163,7 +175,59 @@ export default {
       async calling(){
           this.saveMessage().then(this.fetchMessages())
          
+      },
+      async onChange(e){
+         const file = e.target.files[0]
+         this.image = file
+          // const natureref = ref(storage,'images/nature.jpg')
+          const storageRef = ref(storage, 'images/'+file.name );
+          const metadata = {
+            contentType: 'image/jpg'
+          };
+        const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+        // Listen for state changes, errors, and completion of the upload.
+        uploadTask.on('state_change',
+          (snapshot) => {
+            // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log('Upload is ' + progress + '% done');
+            switch (snapshot.state) {
+              case 'paused':
+                console.log('Upload is paused');
+                break;
+              case 'running':
+                console.log('Upload is running');
+                break;
+            }
+          }, 
+          (error) => {
+            // A full list of error codes is available at
+            // https://firebase.google.com/docs/storage/web/handle-errors
+            switch (error.code) {
+              case 'storage/unauthorized':
+                // User doesn't have permission to access the object
+                break;
+              case 'storage/canceled':
+                // User canceled the upload
+                break;
+
+              // ...
+
+              case 'storage/unknown':
+                // Unknown error occurred, inspect error.serverResponse
+                break;
+            }
+          }, 
+          () => {
+            // Upload completed successfully, now we can get the download URL
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+              console.log('File available at', downloadURL);
+            });
+          }
+        );
       }
+      
+      
       
 
   },

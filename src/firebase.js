@@ -19,4 +19,5 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 var firestore = getFirestore();
+// var storage = getStorage();
 export default firestore = getFirestore();
